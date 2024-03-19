@@ -847,32 +847,32 @@ void mavlinkSendBatteryTemperatureStatusText(void)
 
 }
 
-float wind_direction=0,wind_speed=0;
+static float wind_direction=0;
+static float wind_speed=0;
 void mavlinkSendWindEstimator(void)
 {
     uint16_t windHeading; // centidegrees
-   
+    bool valid = false;
+    float xWindSpeed = -1;
     if (ARMING_FLAG(ARMED)){
-        wind_speed =  getEstimatedHorizontalWindSpeed(&windHeading)  ; 
-        wind_speed = CMSEC_TO_CENTIKPH(wind_speed)/100;//  centimeters/s to km/h 
+        valid = isEstimatedWindSpeedValid(); 
+        xWindSpeed = getEstimatedWindSpeed(X);            
+        wind_speed =  getEstimatedHorizontalWindSpeed(&windHeading) / 100 ; 
+        //wind_speed = CMSEC_TO_CENTIKPH(wind_speed);//  centimeters/s to km/h          
         //wind_direction = CENTIDEGREES_TO_DEGREES((float)windHeading);       
-        wind_direction = osdGetHeadingAngle( CENTIDEGREES_TO_DEGREES((int)windHeading) - DECIDEGREES_TO_DEGREES(attitude.values.yaw) + 22);
-                   
-        
+        wind_direction = osdGetHeadingAngle( CENTIDEGREES_TO_DEGREES((int)windHeading) - DECIDEGREES_TO_DEGREES(attitude.values.yaw) + 22);        
     }else{//Show smthng to test messate is working
         wind_direction+=3;
-        wind_speed+=0.5;
+        wind_speed+=0.2;
     }
-     if (wind_speed>25)//just in case
-            wind_speed=1;
+       
     if (wind_direction>360)
-            wind_direction=3;
-    
+            wind_direction=5;
+        
     mavlink_msg_wind_pack(mavSystemId, mavComponentId, &mavSendMsg,        
     wind_direction,
-    wind_speed,0);
-   
-
+    (valid) ? wind_speed:-wind_speed
+    ,xWindSpeed);
     mavlinkSendMessage();
 }
 
