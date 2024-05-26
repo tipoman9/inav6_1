@@ -84,6 +84,8 @@
 #include "telemetry/mavlink_msg_wind.h"
 #include "telemetry/mavlink_msg_esc_telemetry_1_to_4.h"
 
+#include "flight/wind_estimator.h"
+
 #include "telemetry/telemetry.h"
 
 #include "blackbox/blackbox_io.h"
@@ -849,31 +851,35 @@ void mavlinkSendBatteryTemperatureStatusText(void)
 
 static float wind_direction=0;
 static float wind_speed=0;
+static int8_t axis=0;
 void mavlinkSendWindEstimator(void)
 {
+    float xWindSpeed = -1;
+
     uint16_t windHeading; // centidegrees
     bool valid = false;
-    float xWindSpeed = -1;
+
+    xWindSpeed = getEstimatedWindSpeed(axis) / 100; // X=0      
+    //axis++; if (axis>=3) axis=0;//show all axis 
+           
     if (ARMING_FLAG(ARMED)){
         valid = isEstimatedWindSpeedValid(); 
-        xWindSpeed = getEstimatedWindSpeed(X);            
-        wind_speed =  getEstimatedHorizontalWindSpeed(&windHeading) / 100 ; 
-        //wind_speed = CMSEC_TO_CENTIKPH(wind_speed);//  centimeters/s to km/h          
-        //wind_direction = CENTIDEGREES_TO_DEGREES((float)windHeading);       
-        wind_direction = osdGetHeadingAngle( CENTIDEGREES_TO_DEGREES((int)windHeading) - DECIDEGREES_TO_DEGREES(attitude.values.yaw) + 22);        
-    }else{//Show smthng to test messate is working
+        wind_speed =  getEstimatedHorizontalWindSpeed(&windHeading) / 100 ;              
+        wind_direction = osdGetHeadingAngle( CENTIDEGREES_TO_DEGREES((int)windHeading) - DECIDEGREES_TO_DEGREES(attitude.values.yaw) /*+ 22*/);        
+
+    }else{//Show smthng to test message is working
         wind_direction+=3;
-        wind_speed+=0.2;
+        wind_speed+=0.3;        
     }
        
     if (wind_direction>360)
-            wind_direction=5;
+        wind_direction=5;
         
     mavlink_msg_wind_pack(mavSystemId, mavComponentId, &mavSendMsg,        
     wind_direction,
-    (valid) ? wind_speed:-wind_speed
+    (valid) ? wind_speed:-wind_speed //negative speed if it is not valid
     ,xWindSpeed);
-    mavlinkSendMessage();
+    mavlinkSendMessage();                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       
 }
 
 
